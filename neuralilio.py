@@ -1,4 +1,4 @@
-import copy, math, numpy as np, random
+import copy, math, numpy as np, random, tqdm
 from activation import *
 
 class NN:
@@ -105,6 +105,31 @@ class NN:
         for i in range(len(self.biases)):
             for j in range(len(self.biases[i])):
                 self.biases[i][j] -= self.learningRate*deltaMatrix[1][i][j]
+
+    def train(self, inputSet, outputSet, costLimit=0.01, maxIterations=5000):
+        assert len(inputSet) == len(outputSet)
+        for x in range(maxIterations):
+            totalMatrix = []
+            for i in tqdm.tqdm(range(len(inputSet)), leave=False):
+                totalMatrix.append(self.deltaMatrix(inputSet[i], outputSet[i]))
+            finalWeights = copy.deepcopy(totalMatrix[0][0])
+            finalBiases = copy.deepcopy(totalMatrix[0][1])
+
+            for i in range(len(finalWeights)):
+                for j in range(len(finalWeights[i])):
+                    for k in range(len(finalWeights[i][j])):
+                        finalWeights[i][j][k] = sum(x[i][j][k] for x in [ y[0] for y in totalMatrix ])/len(totalMatrix)
+
+            for i in range(len(finalBiases)):
+                for j in range(len(finalBiases[i])):
+                    finalBiases[i][j] = sum(x[i][j] for x in [ y[1] for y in totalMatrix ])/len(totalMatrix)
+
+            self.applyDeltaMatrix((finalWeights, finalBiases))
+            
+            now = averageCostFunction(self, inputSet, outputSet)
+            if now <= costLimit:
+                break
+            print(now, "\t", f"{x}/{maxIterations}")
     
 def averageCostFunction(neuralNetwork : NN, inputSet : list[float], outputSet : list[float]):
     assert len(inputSet) == len(outputSet)
