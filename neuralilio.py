@@ -106,7 +106,7 @@ class NN:
             for j in range(len(self.biases[i])):
                 self.biases[i][j] -= self.learningRate*deltaMatrix[1][i][j]
 
-    def train(self, inputSet, outputSet, costLimit=0.01, maxIterations=5000):
+    def train(self, inputSet, outputSet, costLimit=0.01, maxIterations=5000, printFinalCost=False, monitorCost=False):
         assert len(inputSet) == len(outputSet)
         for x in range(maxIterations):
             totalMatrix = []
@@ -129,7 +129,14 @@ class NN:
             now = averageCostFunction(self, inputSet, outputSet)
             if now <= costLimit:
                 break
-            print(now, "\t", f"{x}/{maxIterations}")
+            if monitorCost:
+                print(now, "\t", f"{x}/{maxIterations}")
+        if printFinalCost:
+            print(f"Final average cost: {now}")
+
+    def test(self, inputSet, outputSet, testFunction : function=lambda x, y: x == y):
+        assert len(inputSet) == len(outputSet)
+        return sum([ 1 if testFunction(self.getResultFromInput(inputSet[x]), outputSet[x]) else 0 for x in range(len(inputSet)) ])/len(inputSet)
     
 def averageCostFunction(neuralNetwork : NN, inputSet : list[float], outputSet : list[float]):
     assert len(inputSet) == len(outputSet)
