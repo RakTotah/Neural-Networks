@@ -1,108 +1,138 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class NN {
-    private ArrayList<ArrayList<Float>> representation = new ArrayList<>();
-    private ArrayList<ArrayList<ArrayList<Float>>> weights = new ArrayList<>();
-    private ArrayList<ArrayList<Float>> biases = new ArrayList<>();
-    public Float learningRate = 0.01f;
 
-    public NN(int inputNodes, int outputNodes, int hLNum, int hLNodeNum, Float learningRate){
+    // Relatively useful activation functions, though custom ones may be used as long as they are:
+    //      1. Defined for the continuous spectrum of real numbers.
+    //      2. Differentiable.
+    public static activationFunction sigmoid = new activationFunction(x -> 1/(1+(float)Math.exp(-x)) , x -> x);
+    public static activationFunction reLU = new activationFunction((x) -> x>0?x:0, x -> x>0?1f:0);
+    /**
+     * A matrix to represent the nodes of the network, used purely as a structural component, with no calculations using it. <br>
+     * {@code representation[i][j]} is the activation value of the jth node of the ith layer.
+     */
+    private float[][] representation = null;
+    /**
+     * The weight matrix of the neural network. <br>
+     * {@code weights[i][j][k]} is the weight from the jth node of the ith layer to the kth node of the (i+1)th layer, where the 0th layer is the input layer.
+     */
+    public float[][][] weights = null;
+    /**
+     * The bias matrix of the neural network. <br>
+     * {@code biases[i][j]} is the bias of the jth node of the ith layer, where the 0th layer is the first layer after the input layer.
+     */
+    public float[][] biases = null;
+    public float learningRate = 0.01f;
+    private activationFunction activationFunction;
+
+    public NN(int inputNodes, int outputNodes, int hLNum, int hLNodeNum, float learningRate, activationFunction activationFunction){
         this.learningRate = learningRate;
-        this.setupRepresentation(inputNodes, outputNodes, hLNum, hLNodeNum);
-        this.setupBiases(outputNodes, hLNum, hLNodeNum);
-        this.setupWeights();
+        this.representation = new float[hLNum+2][];
+        this.weights = new float[hLNum+1][][];
+        this.biases = new float[hLNum+1][];
+        this.activationFunction = activationFunction;
+        this.initRepresentation(inputNodes, outputNodes, hLNum, hLNodeNum);
+        this.initBiases(outputNodes, hLNum, hLNodeNum);
+        this.initWeights();
     }
 
-    private void setupWeights(){
-        ArrayList<Float> tempInner = new ArrayList<>();
-        ArrayList<ArrayList<Float>> tempOuter = new ArrayList<>();
-
+    private void initWeights(){
         int i = 0;
-        while (i < this.representation.size() - 1){
-            tempOuter = new ArrayList<>();
-            for (int j = 0; j < this.representation.get(i).size(); j++){
-                tempInner = new ArrayList<>();
-                for (int k = 0; k < this.representation.get(i+1).size(); k++){
-                    tempInner.add(0f);
-                }
-                tempOuter.add(new ArrayList<>(tempInner));
+        while (i < this.weights.length){
+            this.weights[i] = new float[this.representation[i].length][];
+            for (int j = 0; j < this.representation[i].length; j++){
+                this.weights[i][j] = new float[this.representation[i+1].length];
             }
-            this.weights.add(new ArrayList<>(tempOuter));
-            // System.out.println(String.format("%d, %d", i, i+1));
             i++;
         }
     }
 
-    private void setupBiases(int outputNodes, int hLNum, int hLNodeNum){
-        ArrayList<Float> temp = new ArrayList<>();
-
-        // Hidden layers
-        for (int i = 0; i < hLNum; i++){
-            temp.clear();
-            for (int j = 0; j < hLNodeNum; j++){
-                temp.add(0f);
-            }
-            this.biases.add(new ArrayList<>(temp));
-        }
-
-        // Output layer
-        temp.clear();
-        for (int i = 0; i < outputNodes; i++){
-            temp.add(0f);
-        }
-        this.biases.add(new ArrayList<>(temp));
-    }
-    private void setupRepresentation(int inputNodes, int outputNodes, int hLNum, int hLNodeNum){
-        // Input layer setup
-        ArrayList<Float> temp = new ArrayList<>();
-        for (int i = 0; i < inputNodes; i++){
-            temp.add(0f);
-        }
-        this.representation.add(new ArrayList<>(temp));
-
+    private void initBiases(int outputNodes, int hLNum, int hLNodeNum){
+        int i = 0;
         // Hidden layer setup
-        for (int i = 0; i < hLNum; i++){
-            temp.clear();
-            for (int j = 0; j < hLNodeNum; j++){
-                temp.add(0f);
-            }
-            this.representation.add(new ArrayList<>(temp));
+        while (i < hLNum){
+            this.biases[i] = new float[hLNodeNum];
+            i++;
         }
-
         // Output layer setup
-        temp.clear();
-        for (int i = 0; i < outputNodes; i++){
-            temp.add(0f);
+        this.biases[i] = new float[outputNodes];
+    }
+    private void initRepresentation(int inputNodes, int outputNodes, int hLNum, int hLNodeNum){
+        int i = 0;
+        // Input layer setup
+        this.representation[i] = new float[inputNodes];
+        i++;
+        // Hidden layer setup
+        while (i <= hLNum){
+            this.representation[i] = new float[hLNodeNum];
+            i++;
         }
-        this.representation.add(new ArrayList<>(temp));
+        // Output layer setup
+        this.representation[i] = new float[outputNodes];
     }
 
-    private void randomize(){
+    public void randomize(){
 
         // Weights
-        for (int i = 0; i < this.weights.size(); i++){
-            for (int j = 0; i < this.weights.get(i).size(); j++){
-                for (int k = 0; i < this.weights.get(i).get(j).size(); k++){
-                    if (Math.random() >= 0.5f){
-                        this.weights.get(i).get(j).set(k, (float)Math.random());
-                    }
-                    else{
-                        this.weights.get(i).get(j).set(k, -1 * (float)Math.random());
-                    }
+        for (float[][] e : this.weights){
+            for (float[] f : e){
+                for (int i = 0; i < f.length; i++){
+                    f[i] = Math.random() >= 0.5f ? (float)Math.random() : -1 * (float)Math.random();
                 }
             }
         }
-
         // Biases
-        for (int i = 0; i < this.biases.size(); i++){
-            for (int j = 0; i < this.biases.get(i).size(); j++){
-                if (Math.random() >= 0.5f){
-                        this.biases.get(i).set(j, (float)Math.random());
-                    }
-                    else{
-                        this.biases.get(i).set(j, -1 * (float)Math.random());
-                    }
+        for (float[] e : this.biases) {
+            for (int i = 0; i < e.length; i++) {
+                e[i] = Math.random() >= 0.5f ? (float)Math.random() : -1 * (float)Math.random();
             }
+        }
+    }
+
+    private float sum(float[] inputLst){
+        float result = 0;
+        for (float e : inputLst){
+            result += e;
+        }
+        return result;
+    }
+
+    public float[][] forwardPass(float[] input){
+
+        // Temp setup
+        float[][] temp = new float[this.representation.length][];
+        for (int i = 0; i < this.representation.length; i++){
+            temp[i] = new float[this.representation[i].length];
+        }
+        temp[0] = input;
+        assert input.length == temp[0].length;
+        
+        for (int layer = 0; layer < temp.length-1; layer++){
+            for (int i = 0; i < temp[layer+1].length; i++){
+                temp[layer+1][i] = sum(temp[layer]);
+            }
+        }
+        this.representation = temp;
+        return temp;
+    }
+
+    public void debug(){
+        System.out.println("Weights:");
+        for (float[][] e : this.weights){
+            for (float[] f : e){
+                System.out.print(Arrays.toString(f));
+                System.out.print(" ");
+            }
+            System.out.println();
+        }
+        System.out.println("Biases:");
+        for (float[] e : this.biases){
+            System.out.println(Arrays.toString(e));
+        }
+        System.out.println("Representation:");
+        for (float[] e : this.representation){
+            System.out.println(Arrays.toString(e));
         }
     }
 
