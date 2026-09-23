@@ -1,6 +1,6 @@
 /.DS_Store
 /__pycache__
-/testingNN.py
-/againington.py
-/does.class
-/does.java
+python/testingNN.py
+python/againington.py
+java/does.class
+java/does.java
