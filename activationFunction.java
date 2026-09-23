@@ -1,19 +1,19 @@
 import java.util.function.Function;
 
 public class activationFunction {
-    private final Function<Float, Float> standardFunc;
-    private final Function<Float, Float> derivativeFunc;
+    private final Function<Double, Double> standardFunc;
+    private final Function<Double, Double> derivativeFunc;
 
-    public activationFunction(Function<Float,Float> standard, Function<Float,Float> derivative){
+    public activationFunction(Function<Double,Double> standard, Function<Double,Double> derivative){
         this.standardFunc = standard;
         this.derivativeFunc = derivative;
     }
 
-    public float standard(float input){
+    public double standard(double input){
         return this.standardFunc.apply(input);
     }
 
-    public float derivative(float input){
+    public double derivative(double input){
         return this.derivativeFunc.apply(input);
     }
 }
