@@ -34,9 +34,9 @@ class NN:
 
     def randomize(self):
         for i in range(len(self.weights)):
-                    for j in range(len(self.weights[i])):
-                        for k in range(len(self.weights[i][j])):
-                            self.weights[i][j][k] = random.randint(-1000, 1000)/1000
+            for j in range(len(self.weights[i])):
+                for k in range(len(self.weights[i][j])):
+                    self.weights[i][j][k] = random.randint(-1000, 1000)/1000
         
         for i in range(len(self.biases)):
             for j in range(len(self.biases[i])):
@@ -106,8 +106,9 @@ class NN:
             for j in range(len(self.biases[i])):
                 self.biases[i][j] -= self.learningRate*deltaMatrix[1][i][j]
 
-    def train(self, inputSet, outputSet, costLimit=0.01, maxIterations=5000, printFinalCost=False, monitorCost=False):
+    def train(self, inputSet, outputSet, costLimit=0.01, maxIterations=5000, printFinalCost=False, monitorCost=False, adaptLearningRate = False):
         assert len(inputSet) == len(outputSet)
+        previous = averageCostFunction(self, inputSet, outputSet)
         for x in range(maxIterations):
             totalMatrix = []
             for i in tqdm.tqdm(range(len(inputSet)), leave=False):
@@ -127,17 +128,24 @@ class NN:
             self.applyDeltaMatrix((finalWeights, finalBiases))
             
             now = averageCostFunction(self, inputSet, outputSet)
+            if adaptLearningRate and now == previous:
+                self.learningRate *= 1.01
+            elif adaptLearningRate and percentDifference(now, previous) <= 0.01:
+                self.learningRate /= 1.01
             if now <= costLimit:
                 break
             if monitorCost:
-                print(now, "\t", f"{x}/{maxIterations}")
+                print(now, f"\t{self.learningRate}" if adaptLearningRate else "", "\t", f"{x}/{maxIterations}")
         if printFinalCost:
             print(f"Final average cost: {now}")
 
     def test(self, inputSet, outputSet, testFunction : function=lambda x, y: x == y):
         assert len(inputSet) == len(outputSet)
         return sum([ 1 if testFunction(self.getResultFromInput(inputSet[x]), outputSet[x]) else 0 for x in range(len(inputSet)) ])/len(inputSet)
-    
+
+def percentDifference(calculated, expected):
+    return abs(expected-calculated)/expected
+
 def averageCostFunction(neuralNetwork : NN, inputSet : list[float], outputSet : list[float]):
     assert len(inputSet) == len(outputSet)
     return sum(neuralNetwork.costFunction(inputSet[x], outputSet[x]) for x in range(len(inputSet)))/len(inputSet)
